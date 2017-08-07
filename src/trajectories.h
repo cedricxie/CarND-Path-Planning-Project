@@ -61,4 +61,58 @@ double s_evl(double car_s_current, double t_current, double car_speed_max, doubl
     return car_s_current + car_speed_max/c * log((exp(c*(t_current+t))+1)/(exp(c*t_current)+1));
 }
 
+void trajectories_acceleration(vector<double> &start_states, vector<double> &end_states,
+  vector<double> &s_history, int states_size, int t_inc, int t_n, double car_speed_max, double c){
+
+    double car_s_next;
+    double car_speed_next;
+    double car_a_next;
+
+    double t_current;
+
+    double car_s_current = start_states[0];
+    double car_speed_current = start_states[1];
+    double car_a_current = start_states[2];
+
+    if (car_speed_current < 0.05){ t_current = -3.0;}
+    else if(car_speed_current > car_speed_max){ t_current = 3.0;}
+    else{ t_current = - log(car_speed_max/car_speed_current - 1.0)/c;}
+
+    //car_s_current = prev_s + car_speed_max/c*log((exp(c*(t_current+t_inc/t_n))+1)/(exp(c*t_current)+1));
+    //car_speed_current = car_speed_max * 1.0/(1.0+exp(-c*(t_current+t_inc/t_n)));
+    //car_a_current = car_speed_max*c*exp(-c*(t_current+t_inc/t_n))/(1.0+exp(-c*(t_current+t_inc/t_n)))/(1.0+exp(-c*(t_current+t_inc/t_n)));
+
+    car_s_next = car_s_current + car_speed_max/c * log((exp(c*(t_current+double(t_inc)/t_n*(t_n+1.0)))+1.0)/(exp(c*t_current)+1.0));
+    car_speed_next = car_speed_max * 1.0/(1.0+exp(-c*(t_current+double(t_inc)/t_n*(t_n+1.0))));
+    car_a_next = car_speed_max*c*exp(-c*(t_current+double(t_inc)/t_n*(t_n+1.0)))/(1.0+exp(-c*(t_current+double(t_inc)/t_n*(t_n+1.0))))/(1.0+exp(-c*(t_current+double(t_inc)/t_n*(t_n+1.0))));
+
+    end_states={car_s_next, car_speed_next, car_a_next};
+
+    //cout << setw(25) << "==================================================================" << endl;
+    //cout << setw(25) << "tmp output:  "<< car_speed_max << " " << (exp(c*(t_current+double(t_inc)/t_n*(t_n+1.0)))+1.0) << " " << (exp(c*t_current)+1.0) << " " << t_current << " " << t_inc << " " << t_n << endl;
+    //cout << setw(25) << "start status:  "<< start_states[0] << " " << start_states[1] << " " << start_states[2] << endl;
+    //cout << setw(25) << "end status: "<< end_states[0] << " " << end_states[1] << " " << end_states[2] << endl;
+    //cout << setw(25) << "==================================================================" << endl;
+
+    vector <double> trajectory_coeffs = JMT(start_states, end_states, t_inc);
+    //cout << setw(25) << "JML Coefficients: ";
+    //for (auto const& k : trajectory_coeffs) std::cout << k << ' ';
+    //cout << endl;
+
+    for(int i = 1; i <= states_size; i++)
+    {
+      //tmp_status = getXY(trj_evl(trajectory_coeffs, t_inc/t_n*i), car_d, map_waypoints_s, map_waypoints_x, map_waypoints_y);
+      //tmp_status = getXY(trj_evl(trajectory_coeffs, t_inc/t_n*i), car_d, map_waypoints_s_tmp, map_waypoints_x_tmp, map_waypoints_y_tmp);
+      //tmp_status = getXY_spline(trj_evl(trajectory_coeffs, t_inc/t_n*i), car_d, s_x, s_y, s_dx, s_dy);
+      //cout << setw(25) << "pushed in s:  "<< trj_evl(trajectory_coeffs, t_inc/t_n*i) << " " << tmp_status[0] << " " << tmp_status[1] << endl;
+      //tmp_status = getXY(s_evl(car_s_current, t_current, car_speed_max, c, t_inc/t_n*i), car_d, map_waypoints_s, map_waypoints_x, map_waypoints_y);
+      //cout << setw(25) << "pushed in s:  "<< s_evl(car_s_current, t_current, car_speed_max, c, t_inc/t_n*i) << endl;
+      //cout << setw(25) << "pushed in s:  "<< trj_evl(trajectory_coeffs, double(t_inc)/t_n*i) << endl;
+      s_history.push_back(trj_evl(trajectory_coeffs, double(t_inc)/t_n*i));
+      //next_x_vals.push_back(tmp_status[0]);
+      //next_y_vals.push_back(tmp_status[1]);
+    }
+    //cout << setw(25) << "last point in s:  "<< s_history[s_history.size()-1] << endl;
+}
+
 #endif // ADD_TRAJ_INCLUDED

@@ -38,6 +38,7 @@ int dflag_getXY_short = 7;
 int dflag_getXY_full = 8;
 
 int path_count=0;
+int iter_count=0;
 double max_s = 6945.554;
 
 double t_inc = 5;
@@ -277,21 +278,11 @@ int main() {
             int path_size = previous_path_x.size();
             int prev_path_size;
 
-            double car_s_next;
-            double car_speed_next;
-            double car_a_next;
-
-            double car_a;
-            double t_current;
-
-            double car_s_current;
-            double car_speed_current;
-            double car_a_current;
-
             vector <double> end;
             vector <double> start;
 
             vector <double> tmp_status;
+            double tmp_car_s;
             //***************************************************//
             //Import Previous States
             //***************************************************//
@@ -310,9 +301,6 @@ int main() {
             //***************************************************//
             //Evaluate Previous State
             //***************************************************//
-            cout << setw(25) << "==================================================================" << endl;
-            cout << setw(25) << "Evaluate Previous States" << endl;
-            cout << setw(25) << "==================================================================" << endl;
             //cout << setw(25) << "all path points in the prev list: " << endl;
             //for (int i = 0; i<path_size; i++) cout << previous_path_x[i] << ' ' << previous_path_y[i] << ' ' << endl;
             if (s_history.size()>2){
@@ -320,8 +308,9 @@ int main() {
               prev_speed = (s_history[s_history.size()-1] - s_history[s_history.size()-2])/(t_inc/t_n);
               prev_speed2 = (s_history[s_history.size()-2] - s_history[s_history.size()-3])/(t_inc/t_n);
               prev_a = (prev_speed - prev_speed2)/(t_inc/t_n);
+              tmp_car_s = s_history[(int)t_n - prev_path_size - 1]; //corrected current car_s
               s_history.erase( s_history.begin(), s_history.begin() + (int)t_n - prev_path_size );
-              //cout << setw(25) << "all path points in the s_history list: " << endl;
+              //cout << setw(25) << "s_history list size: " << s_history.size() << "all path points in the s_history list: " << endl;
               //for (int i = 0; i<s_history.size(); i++) cout << s_history[i] << ' ' << endl;
             }
             else{
@@ -330,67 +319,48 @@ int main() {
               prev_a = 0.0;
             }
 
-            car_d = 6.164833e+00;
-            //***************************************************//
-            //Calculate Current States
-            //***************************************************//
-            if (prev_speed < 0.05){
-              t_current = -3.0;
-            }
-            else if(prev_speed > car_speed_max){
-              t_current = 3.0;
-            }
-            else{
-              t_current = - log(car_speed_max/prev_speed - 1.0)/c;
-            }
-
-            car_s_current = prev_s + car_speed_max/c*log((exp(c*(t_current+t_inc/t_n))+1)/(exp(c*t_current)+1));
-            car_speed_current = car_speed_max * 1.0/(1.0+exp(-c*(t_current+t_inc/t_n)));
-            car_a_current = car_speed_max*c*exp(-c*(t_current+t_inc/t_n))/(1.0+exp(-c*(t_current+t_inc/t_n)))/(1.0+exp(-c*(t_current+t_inc/t_n)));
-
-            car_s_next = car_s_current + car_speed_max/c * log((exp(c*(t_current+t_inc/t_n*(t_n+1)))+1)/(exp(c*t_current)+1));
-            car_speed_next = car_speed_max * 1.0/(1.0+exp(-c*(t_current+t_inc/t_n*(t_n+1))));
-            car_a_next = car_speed_max*c*exp(-c*(t_current+t_inc/t_n*(t_n+1)))/(1.0+exp(-c*(t_current+t_inc/t_n*(t_n+1))))/(1.0+exp(-c*(t_current+t_inc/t_n*(t_n+1))));
-
-            start = {car_s_current , car_speed_current, car_a_current};
-            end = {car_s_next, car_speed_next, car_a_next};
-
-            path_count += t_n - prev_path_size;
+            iter_count++;
 
             cout << scientific;
             cout << left;
             cout << setw(25) << "==================================================================" << endl;
-            cout << setw(25) << "pseudo t:  "<< t_current << endl;
-            cout << setw(25) << "added path size:  "<< int(t_n) - prev_path_size << endl;
-            cout << setw(25) << "total added path size:  "<< path_count << endl;
-            cout << setw(25) << "previous status :  "<< prev_s << " " << prev_d << " " << prev_speed << " "  << endl;
-            cout << setw(25) << "previous end status :  "<< end_path_s << " " << end_path_d  << endl;
-            cout << setw(25) << "current status:  "<< car_s << " " << car_d << " " << car_speed << " " << car_x << " " << car_y << endl;
-            cout << setw(25) << "corrected status:  "<< start[0] << " " << start[1] << " " << start[2] << endl;
-            cout << setw(25) << "next status: "<< end[0] << " " << end[1] << " " << end[2] << endl;
+            cout << setw(25) << "Start Iteration: " << iter_count << endl;
+            cout << setw(25) << "==================================================================" << endl;
+            //cout << setw(25) << "pseudo t:  "<< t_current << endl;
+            cout << setw(25) << "added path size:  "<< int(t_n) - prev_path_size << " total added path size:  "
+            << path_count << endl;
+            cout << setw(25) << "current status :  "<< car_s << " " << tmp_car_s << " " << car_d << " " << car_speed << " "
+            << car_x << " " << car_y << " "   << endl;
 
-            vector <double> trajectory_coeffs = JMT(start, end, t_inc);
-            //cout << setw(25) << "JML Coefficients: ";
-            //for (auto const& k : trajectory_coeffs) std::cout << k << ' ';
-            //cout << endl;
+            car_d = 6.164833e+00;
+            //***************************************************//
+            //Calculate Current States
+            //***************************************************//
+            cout << setw(25) << "==================================================================" << endl;
+            cout << setw(25) << "Single Lane Acceleration" << endl;
+            cout << setw(25) << "==================================================================" << endl;
+
+            path_count += max_prev_path_size - prev_path_size;
+
+            start = {prev_s, prev_speed, prev_a};
+            //end = {car_s_next, car_speed_next, car_a_next};
+
+            trajectories_acceleration(start, end, s_history, max_prev_path_size - prev_path_size,
+              t_inc, t_n, car_speed_max, c);
 
             //***************************************************//
             //Output Next Path States
             //***************************************************//
-            cout << setw(25) << "==================================================================" << endl;
-          	for(int i = 0; i < max_prev_path_size - path_size; i++)
+            //cout << setw(25) << "==================================================================" << endl;
+          	for(int i = 0; i < max_prev_path_size - prev_path_size; i++)
           	{
-              //tmp_status = getXY(trj_evl(trajectory_coeffs, t_inc/t_n*i), car_d, map_waypoints_s, map_waypoints_x, map_waypoints_y);
-              //tmp_status = getXY(trj_evl(trajectory_coeffs, t_inc/t_n*i), car_d, map_waypoints_s_tmp, map_waypoints_x_tmp, map_waypoints_y_tmp);
-              tmp_status = getXY_spline(trj_evl(trajectory_coeffs, t_inc/t_n*i), car_d, s_x, s_y, s_dx, s_dy);
-              cout << setw(25) << "pushed in s:  "<< trj_evl(trajectory_coeffs, t_inc/t_n*i) << " " << tmp_status[0] << " " << tmp_status[1] << endl;
-              //tmp_status = getXY(s_evl(car_s_current, t_current, car_speed_max, c, t_inc/t_n*i), car_d, map_waypoints_s, map_waypoints_x, map_waypoints_y);
-              //cout << setw(25) << "pushed in s:  "<< s_evl(car_s_current, t_current, car_speed_max, c, t_inc/t_n*i) << endl;
-              s_history.push_back(trj_evl(trajectory_coeffs, t_inc/t_n*i));
+              tmp_status = getXY_spline(s_history[s_history.size()-max_prev_path_size+prev_path_size+i], car_d, s_x, s_y, s_dx, s_dy);
+              //cout << "index: " << s_history.size() << " " << max_prev_path_size << " " << prev_path_size << " " << i << endl;
+              cout << setw(25) << "pushed in s:  "<< s_history[s_history.size()-max_prev_path_size+prev_path_size+i] << " " << tmp_status[0] << " " << tmp_status[1] << endl;
               next_x_vals.push_back(tmp_status[0]);
           	  next_y_vals.push_back(tmp_status[1]);
           	}
-            cout << setw(25) << "==================================================================" << endl;
+            //cout << setw(25) << "==================================================================" << endl;
 
           	// TODO: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
           	msgJson["next_x"] = next_x_vals;
