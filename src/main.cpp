@@ -418,10 +418,13 @@ int main() {
             }*/
 
             //***************************************************//
-            //Calculate Current States
+            //Behavior Planning
             //***************************************************//
             double v_init = 0.0;
             double v_end = car_speed_max;
+			
+			double d_init = car_d_init;
+			double d_end = car_d_init;
 
             for(int i=0; i<sensor_car_list_mid.size(); i++){
               if(sensor_car_list_mid[sensor_car_list_mid.size()-i-1][1]>prev_s){
@@ -442,7 +445,7 @@ int main() {
             start = {prev_s, prev_speed, prev_a};
             //end = {car_s_next, car_speed_next, car_a_next};
 
-            trajectories_acceleration(start, end, s_history, v_init, v_end, prev_d, d_history, max_prev_path_size - prev_path_size,
+            trajectories_acceleration(start, end, s_history, v_init, v_end, prev_d, d_history, d_init, d_end, max_prev_path_size - prev_path_size,
               t_inc, t_n, car_speed_max, c);
 
             //***************************************************//

@@ -64,6 +64,7 @@ double s_evl(double car_s_current, double t_current, double car_speed_max, doubl
 void trajectories_acceleration(vector<double> &start_states, vector<double> &end_states, vector<double> &s_history,
   double v_init, double v_end,
   double prev_d, vector<double> &d_history,
+  double d_init, double d_end,
   int states_size, int t_inc, int t_n, double car_speed_max, double c){
 
     double car_s_next;
