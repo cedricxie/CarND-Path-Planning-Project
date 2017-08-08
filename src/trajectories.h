@@ -61,8 +61,10 @@ double s_evl(double car_s_current, double t_current, double car_speed_max, doubl
     return car_s_current + car_speed_max/c * log((exp(c*(t_current+t))+1)/(exp(c*t_current)+1));
 }
 
-void trajectories_acceleration(vector<double> &start_states, vector<double> &end_states,
-  vector<double> &s_history, int states_size, int t_inc, int t_n, double car_speed_max, double c){
+void trajectories_acceleration(vector<double> &start_states, vector<double> &end_states, vector<double> &s_history,
+  double v_init, double v_end,
+  double prev_d, vector<double> &d_history,
+  int states_size, int t_inc, int t_n, double car_speed_max, double c){
 
     double car_s_next;
     double car_speed_next;
@@ -74,17 +76,17 @@ void trajectories_acceleration(vector<double> &start_states, vector<double> &end
     double car_speed_current = start_states[1];
     double car_a_current = start_states[2];
 
-    if (car_speed_current < 0.05){ t_current = -3.0;}
-    else if(car_speed_current > car_speed_max){ t_current = 3.0;}
-    else{ t_current = - log(car_speed_max/car_speed_current - 1.0)/c;}
+    if ( (car_speed_current-v_init)/(v_end - v_init) < 0.05){ t_current = -3.0;}
+    else if( (car_speed_current-v_init)/(v_end - v_init) > 0.95){ t_current = 3.0;}
+    else{ t_current = - log((v_end - v_init)/(car_speed_current-v_init) - 1.0)/c;}
 
     //car_s_current = prev_s + car_speed_max/c*log((exp(c*(t_current+t_inc/t_n))+1)/(exp(c*t_current)+1));
     //car_speed_current = car_speed_max * 1.0/(1.0+exp(-c*(t_current+t_inc/t_n)));
     //car_a_current = car_speed_max*c*exp(-c*(t_current+t_inc/t_n))/(1.0+exp(-c*(t_current+t_inc/t_n)))/(1.0+exp(-c*(t_current+t_inc/t_n)));
 
-    car_s_next = car_s_current + car_speed_max/c * log((exp(c*(t_current+double(t_inc)/t_n*(t_n+1.0)))+1.0)/(exp(c*t_current)+1.0));
-    car_speed_next = car_speed_max * 1.0/(1.0+exp(-c*(t_current+double(t_inc)/t_n*(t_n+1.0))));
-    car_a_next = car_speed_max*c*exp(-c*(t_current+double(t_inc)/t_n*(t_n+1.0)))/(1.0+exp(-c*(t_current+double(t_inc)/t_n*(t_n+1.0))))/(1.0+exp(-c*(t_current+double(t_inc)/t_n*(t_n+1.0))));
+    car_s_next = car_s_current + v_init*double(t_inc)/t_n*(t_n+1.0) + (v_end - v_init)/c * log((exp(c*(t_current+double(t_inc)/t_n*(t_n+1.0)))+1.0)/(exp(c*t_current)+1.0));
+    car_speed_next = v_init + (v_end-v_init)*1.0/(1.0+exp(-c*(t_current+double(t_inc)/t_n*(t_n+1.0))));
+    car_a_next = (v_end-v_init)*c*exp(-c*(t_current+double(t_inc)/t_n*(t_n+1.0)))/(1.0+exp(-c*(t_current+double(t_inc)/t_n*(t_n+1.0))))/(1.0+exp(-c*(t_current+double(t_inc)/t_n*(t_n+1.0))));
 
     end_states={car_s_next, car_speed_next, car_a_next};
 
@@ -109,6 +111,7 @@ void trajectories_acceleration(vector<double> &start_states, vector<double> &end
       //cout << setw(25) << "pushed in s:  "<< s_evl(car_s_current, t_current, car_speed_max, c, t_inc/t_n*i) << endl;
       //cout << setw(25) << "pushed in s:  "<< trj_evl(trajectory_coeffs, double(t_inc)/t_n*i) << endl;
       s_history.push_back(trj_evl(trajectory_coeffs, double(t_inc)/t_n*i));
+      d_history.push_back(prev_d);
       //next_x_vals.push_back(tmp_status[0]);
       //next_y_vals.push_back(tmp_status[1]);
     }
