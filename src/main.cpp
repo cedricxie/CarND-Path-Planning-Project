@@ -43,8 +43,9 @@ double max_s = 6945.554;
 
 double t_inc = 5;
 double t_n = 250;
-double c = 1.0;
-double car_speed_max = 18.0;
+double c = 2.0;
+double car_speed_max = 20.0;
+double car_d_init = 6.164833e+00;
 int max_prev_path_size = t_n;
 
 vector<double> s_history;
@@ -266,7 +267,6 @@ int main() {
             //Parameters Definition
             //***************************************************//
           	json msgJson;
-
           	vector<double> next_x_vals;
           	vector<double> next_y_vals;
 
@@ -280,6 +280,11 @@ int main() {
 
             vector <double> end;
             vector <double> start;
+
+            int sensor_list_size;
+            vector<vector<double>> sensor_car_list_left;
+            vector<vector<double>> sensor_car_list_mid;
+            vector<vector<double>> sensor_car_list_right;
 
             vector <double> tmp_status;
             double tmp_car_s;
@@ -312,14 +317,18 @@ int main() {
               s_history.erase( s_history.begin(), s_history.begin() + (int)t_n - prev_path_size );
               //cout << setw(25) << "s_history list size: " << s_history.size() << "all path points in the s_history list: " << endl;
               //for (int i = 0; i<s_history.size(); i++) cout << s_history[i] << ' ' << endl;
+              prev_d = d_history[d_history.size()-1];
+              d_history.erase( d_history.begin(), d_history.begin() + (int)t_n - prev_path_size );
             }
             else{
               prev_s = 1.249392e+02;
               prev_speed = 0.0;
               prev_a = 0.0;
+              prev_d = car_d_init;
             }
 
             iter_count++;
+            path_count += max_prev_path_size - prev_path_size;
 
             cout << scientific;
             cout << left;
@@ -332,20 +341,108 @@ int main() {
             cout << setw(25) << "current status :  "<< car_s << " " << tmp_car_s << " " << car_d << " " << car_speed << " "
             << car_x << " " << car_y << " "   << endl;
 
-            car_d = 6.164833e+00;
+            //***************************************************//
+            //Analyze Sensor Information
+            //***************************************************//
+            sensor_list_size = sensor_fusion.size();
+            for (int i=0; i<sensor_list_size; i++){
+              //cout << sensor_fusion[i][0] << endl;
+              double sensor_id = sensor_fusion[i][0];
+              double sensor_vx = sensor_fusion[i][3];
+              double sensor_vy = sensor_fusion[i][4];
+              double sensor_s = sensor_fusion[i][5];
+              double sensor_d = sensor_fusion[i][6];
+              double sensor_v = sqrt(sensor_vx*sensor_vx+sensor_vy*sensor_vy);
+              if (sensor_d>8.0){
+                if (sensor_car_list_right.size()==0){
+                  sensor_car_list_right.push_back({sensor_id, sensor_s, sensor_d, sensor_v});
+                }
+                else{
+                  for(int j=0; j<sensor_car_list_right.size(); j++){
+                    if(sensor_s>sensor_car_list_right[j][1]){
+                      sensor_car_list_right.insert(sensor_car_list_right.begin()+j, {sensor_id, sensor_s, sensor_d, sensor_v});
+                      break;
+                    }
+                  }
+                }
+              }
+              else if(sensor_d>4.0){
+                if (sensor_car_list_right.size()==0){
+                  sensor_car_list_mid.push_back({sensor_id, sensor_s, sensor_d, sensor_v});
+                }
+                else{
+                  for(int j=0; j<sensor_car_list_mid.size(); j++){
+                    if(sensor_s>sensor_car_list_mid[j][1]){
+                      sensor_car_list_mid.insert(sensor_car_list_mid.begin()+j, {sensor_id, sensor_s, sensor_d, sensor_v});
+                      break;
+                    }
+                  }
+                }
+              }
+              else{
+                if (sensor_car_list_left.size()==0){
+                  sensor_car_list_left.push_back({sensor_id, sensor_s, sensor_d, sensor_v});
+                }
+                else{
+                  for(int j=0; j<sensor_car_list_left.size(); j++){
+                    if(sensor_s>sensor_car_list_left[j][1]){
+                      sensor_car_list_left.insert(sensor_car_list_left.begin()+j, {sensor_id, sensor_s, sensor_d, sensor_v});
+                      break;
+                    }
+                  }
+                }
+              }
+            }
+
+
+            /*cout << setw(25) << "Sensor Info for Right Lane" << endl;
+            for(int i=0; i<sensor_car_list_right.size(); i++){
+              for(int j=0; j<4; j++){
+                cout << sensor_car_list_right[i][j] << " ";
+              }
+              cout << endl;
+            }
+            cout << setw(25) << "Sensor Info for Mid Lane" << endl;
+            for(int i=0; i<sensor_car_list_mid.size(); i++){
+              for(int j=0; j<4; j++){
+                cout << sensor_car_list_mid[i][j] << " ";
+              }
+              cout << endl;
+            }
+            cout << setw(25) << "Sensor Info for Left Lane" << endl;
+            for(int i=0; i<sensor_car_list_left.size(); i++){
+              for(int j=0; j<4; j++){
+                cout << sensor_car_list_left[i][j] << " ";
+              }
+              cout << endl;
+            }*/
+
             //***************************************************//
             //Calculate Current States
             //***************************************************//
+            double v_init = 0.0;
+            double v_end = car_speed_max;
+
+            for(int i=0; i<sensor_car_list_mid.size(); i++){
+              if(sensor_car_list_mid[sensor_car_list_mid.size()-i-1][1]>prev_s){
+                if (sensor_car_list_mid[sensor_car_list_mid.size()-i-1][1]<prev_s + car_speed_max*t_inc){
+                  cout << setw(25) << "Attension: ";
+                  for (int j=0; j<4; j++) { cout << sensor_car_list_mid[sensor_car_list_mid.size()-i-1][j] << " ";}
+                  cout << endl;
+                  cout << setw(25) << "Slow down speed to: " << sensor_car_list_mid[sensor_car_list_mid.size()-i-1][3] << endl;
+                  v_end = sensor_car_list_mid[sensor_car_list_mid.size()-i-1][3];
+                }
+              }
+            }
+
             cout << setw(25) << "==================================================================" << endl;
             cout << setw(25) << "Single Lane Acceleration" << endl;
             cout << setw(25) << "==================================================================" << endl;
 
-            path_count += max_prev_path_size - prev_path_size;
-
             start = {prev_s, prev_speed, prev_a};
             //end = {car_s_next, car_speed_next, car_a_next};
 
-            trajectories_acceleration(start, end, s_history, max_prev_path_size - prev_path_size,
+            trajectories_acceleration(start, end, s_history, v_init, v_end, prev_d, d_history, max_prev_path_size - prev_path_size,
               t_inc, t_n, car_speed_max, c);
 
             //***************************************************//
@@ -354,9 +451,11 @@ int main() {
             //cout << setw(25) << "==================================================================" << endl;
           	for(int i = 0; i < max_prev_path_size - prev_path_size; i++)
           	{
-              tmp_status = getXY_spline(s_history[s_history.size()-max_prev_path_size+prev_path_size+i], car_d, s_x, s_y, s_dx, s_dy);
+              tmp_status = getXY_spline(s_history[s_history.size()-max_prev_path_size+prev_path_size+i], d_history[d_history.size()-max_prev_path_size+prev_path_size+i], s_x, s_y, s_dx, s_dy);
               //cout << "index: " << s_history.size() << " " << max_prev_path_size << " " << prev_path_size << " " << i << endl;
-              cout << setw(25) << "pushed in s:  "<< s_history[s_history.size()-max_prev_path_size+prev_path_size+i] << " " << tmp_status[0] << " " << tmp_status[1] << endl;
+              cout << setw(25) << "pushed in s, d:  "<< s_history[s_history.size()-max_prev_path_size+prev_path_size+i] << " "
+              << d_history[d_history.size()-max_prev_path_size+prev_path_size+i] << " "
+              << tmp_status[0] << " " << tmp_status[1] << endl;
               next_x_vals.push_back(tmp_status[0]);
           	  next_y_vals.push_back(tmp_status[1]);
           	}
