@@ -30,7 +30,7 @@ double rad2deg(double x) { return x * 180 / pi(); }
 //***************************************************//
 double mph2ms(double x) {return x*1609.34/3600;}
 
-int dflag = 7;
+int dflag = 0;
 // Debug level
 int dflag_general = 1;
 int dflag_fitting = 3;
@@ -44,9 +44,19 @@ double max_s = 6945.554;
 double t_inc = 5;
 double t_n = 250;
 double c = 2.0;
+double c_d = 2.0;
 double car_speed_max = 20.0;
+double car_s_init = 1.249392e+02;
 double car_d_init = 6.164833e+00;
 int max_prev_path_size = t_n;
+
+double car_v_init_global = 0.0;
+double car_v_end_global = car_speed_max;
+int car_lane_init_global = 0;
+int car_lane_end_global = 0;
+double car_lane_width = 4.0;
+
+bool flag = true;
 
 vector<double> s_history;
 vector<double> d_history;
@@ -287,7 +297,7 @@ int main() {
             vector<vector<double>> sensor_car_list_right;
 
             vector <double> tmp_status;
-            double tmp_car_s;
+            double car_s_tmp;
             //***************************************************//
             //Import Previous States
             //***************************************************//
@@ -313,7 +323,7 @@ int main() {
               prev_speed = (s_history[s_history.size()-1] - s_history[s_history.size()-2])/(t_inc/t_n);
               prev_speed2 = (s_history[s_history.size()-2] - s_history[s_history.size()-3])/(t_inc/t_n);
               prev_a = (prev_speed - prev_speed2)/(t_inc/t_n);
-              tmp_car_s = s_history[(int)t_n - prev_path_size - 1]; //corrected current car_s
+              car_s_tmp = s_history[(int)t_n - prev_path_size - 1]; //corrected current car_s
               s_history.erase( s_history.begin(), s_history.begin() + (int)t_n - prev_path_size );
               //cout << setw(25) << "s_history list size: " << s_history.size() << "all path points in the s_history list: " << endl;
               //for (int i = 0; i<s_history.size(); i++) cout << s_history[i] << ' ' << endl;
@@ -321,7 +331,7 @@ int main() {
               d_history.erase( d_history.begin(), d_history.begin() + (int)t_n - prev_path_size );
             }
             else{
-              prev_s = 1.249392e+02;
+              prev_s = car_s_init;
               prev_speed = 0.0;
               prev_a = 0.0;
               prev_d = car_d_init;
@@ -332,14 +342,15 @@ int main() {
 
             cout << scientific;
             cout << left;
-            cout << setw(25) << "==================================================================" << endl;
+            if (dflag>=dflag_general)
+            {cout << setw(25) << "==================================================================" << endl;
             cout << setw(25) << "Start Iteration: " << iter_count << endl;
             cout << setw(25) << "==================================================================" << endl;
             //cout << setw(25) << "pseudo t:  "<< t_current << endl;
             cout << setw(25) << "added path size:  "<< int(t_n) - prev_path_size << " total added path size:  "
             << path_count << endl;
-            cout << setw(25) << "current status :  "<< car_s << " " << tmp_car_s << " " << car_d << " " << car_speed << " "
-            << car_x << " " << car_y << " "   << endl;
+            cout << setw(25) << "current status :  "<< car_s << " " << car_s_tmp << " " << car_d << " " << car_speed << " "
+            << car_x << " " << car_y << " "   << endl;}
 
             //***************************************************//
             //Analyze Sensor Information
@@ -420,34 +431,49 @@ int main() {
             //***************************************************//
             //Behavior Planning
             //***************************************************//
-            double v_init = 0.0;
-            double v_end = car_speed_max;
+            double v_init = car_v_init_global;
+            double v_end = car_v_end_global;
 
-            double d_init = car_d_init;
-            double d_end = car_d_init;
+            double d_init = car_d_init + car_lane_init_global * car_lane_width;
+            double d_end = car_d_init + car_lane_end_global * car_lane_width;
 
+            cout << "Output Sensor Mid Lane: " << endl;
             for(int i=0; i<sensor_car_list_mid.size(); i++){
-              if(sensor_car_list_mid[sensor_car_list_mid.size()-i-1][1]>prev_s){
-                //for (int j=0; j<4; j++) { cout << sensor_car_list_mid[sensor_car_list_mid.size()-i-1][j] << " ";}
+              for (int j=0; j<4; j++) { cout << sensor_car_list_mid[sensor_car_list_mid.size()-i-1][j] << " ";}
+              cout << endl;
+              if(sensor_car_list_mid[sensor_car_list_mid.size()-i-1][1]>car_s_tmp){
                 if (sensor_car_list_mid[sensor_car_list_mid.size()-i-1][1]<prev_s + car_speed_max*t_inc){
                   cout << setw(25) << "Attension: ";
                   for (int j=0; j<4; j++) { cout << sensor_car_list_mid[sensor_car_list_mid.size()-i-1][j] << " ";}
                   cout << endl;
-                  cout << setw(25) << "Slow down speed to: " << sensor_car_list_mid[sensor_car_list_mid.size()-i-1][3] << endl;
-                  v_end = sensor_car_list_mid[sensor_car_list_mid.size()-i-1][3];
+                  //cout << setw(25) << "Slow down speed to: " << sensor_car_list_mid[sensor_car_list_mid.size()-i-1][3] << endl;
+                  //v_end = sensor_car_list_mid[sensor_car_list_mid.size()-i-1][3];
+                  if (flag){
+                    cout << setw(25) << "Change lane started: " << -1 << endl;
+                    car_lane_init_global = car_lane_end_global;
+                    car_lane_end_global = car_lane_end_global  - 1;
+                    flag = false;
+                  }
+                  else{
+                    if (abs(prev_d - d_end) < 0.01) {
+                      car_lane_init_global = car_lane_end_global;
+                      cout << setw(25) << "Change lane completed: " << -1 << endl;
+                    }
+                  }
                 }
               }
             }
 
-            cout << setw(25) << "==================================================================" << endl;
+            if (dflag>=dflag_general)
+            {cout << setw(25) << "==================================================================" << endl;
             cout << setw(25) << "Single Lane Acceleration" << endl;
-            cout << setw(25) << "==================================================================" << endl;
+            cout << setw(25) << "==================================================================" << endl;}
 
             start = {prev_s, prev_speed, prev_a};
             //end = {car_s_next, car_speed_next, car_a_next};
 
             trajectories_acceleration(start, end, s_history, v_init, v_end, prev_d, d_history, d_init, d_end, max_prev_path_size - prev_path_size,
-              t_inc, t_n, car_speed_max, c);
+              t_inc, t_n, car_speed_max, c, c_d);
 
             //***************************************************//
             //Output Next Path States
@@ -457,9 +483,10 @@ int main() {
           	{
               tmp_status = getXY_spline(s_history[s_history.size()-max_prev_path_size+prev_path_size+i], d_history[d_history.size()-max_prev_path_size+prev_path_size+i], s_x, s_y, s_dx, s_dy);
               //cout << "index: " << s_history.size() << " " << max_prev_path_size << " " << prev_path_size << " " << i << endl;
-              cout << setw(25) << "pushed in s, d:  "<< s_history[s_history.size()-max_prev_path_size+prev_path_size+i] << " "
+              if (dflag>=dflag_general)
+              {cout << setw(25) << "pushed in s, d:  "<< s_history[s_history.size()-max_prev_path_size+prev_path_size+i] << " "
               << d_history[d_history.size()-max_prev_path_size+prev_path_size+i] << " "
-              << tmp_status[0] << " " << tmp_status[1] << endl;
+              << tmp_status[0] << " " << tmp_status[1] << endl;}
               next_x_vals.push_back(tmp_status[0]);
           	  next_y_vals.push_back(tmp_status[1]);
           	}

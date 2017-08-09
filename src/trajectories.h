@@ -65,7 +65,7 @@ void trajectories_acceleration(vector<double> &start_states, vector<double> &end
   double v_init, double v_end,
   double prev_d, vector<double> &d_history,
   double d_init, double d_end,
-  int states_size, int t_inc, int t_n, double car_speed_max, double c){
+  int states_size, int t_inc, int t_n, double car_speed_max, double c, double c_d){
 
     double car_s_next;
     double car_speed_next;
@@ -100,20 +100,20 @@ void trajectories_acceleration(vector<double> &start_states, vector<double> &end
 
     end_states={car_s_next, car_speed_next, car_a_next};
 
-    if (abs(prev_d - d_end)<0.01){ t_current = 3.0; }
-    else if ( (prev_d-d_init)/(d_end - d_init) < 1.0/(1+exp(c*3.0)) ) { t_current = -3.0;}
-    else if( (prev_d-d_init)/(d_end - d_init) > 1.0/(1+exp(-c*3.0)) ) { t_current = 3.0;}
+    if (abs(prev_d - d_end)<0.01){ t_current = -2.0; }
+    else if ( (prev_d-d_init)/(d_end - d_init) < 1.0/(1+exp(c_d*2.0)) ) { t_current = -2.0;}
+    else if( (prev_d-d_init)/(d_end - d_init) > 1.0/(1+exp(-c_d*2.0)) ) { t_current = 2.0;}
     else{ t_current = - log((d_end - d_init)/(prev_d-d_init) - 1.0)/c;}
 
     t_next = t_current + double(t_inc)/t_n*(t_n+1.0);
 
     car_d_current = prev_d;
-    car_d_v_current = (d_end-d_init)* c*exp(-c*t_current) /(1.0+exp(-c*t_current))/(1.0+exp(-c*t_current));
-    car_d_a_current = (d_end-d_init)* c*c*exp(-c*t_current)*(exp(-c*t_current)-1) /(1.0+exp(-c*t_current))/(1.0+exp(-c*t_current))/(1.0+exp(-c*t_current));
+    car_d_v_current = (d_end-d_init)* c_d*exp(-c_d*t_current) /(1.0+exp(-c_d*t_current))/(1.0+exp(-c_d*t_current));
+    car_d_a_current = (d_end-d_init)* c_d*c_d*exp(-c_d*t_current)*(exp(-c_d*t_current)-1) /(1.0+exp(-c_d*t_current))/(1.0+exp(-c_d*t_current))/(1.0+exp(-c_d*t_current));
 
-    car_d_next = d_init + (d_end-d_init) /(1.0+exp(-c*t_next));
-    car_d_v_current = (d_end-d_init)* c*exp(-c*t_next) /(1.0+exp(-c*t_next))/(1.0+exp(-c*t_next));
-    car_d_a_current = (d_end-d_init)* c*c*exp(-c*t_next)*(exp(-c*t_next)-1) /(1.0+exp(-c*t_next))/(1.0+exp(-c*t_next))/(1.0+exp(-c*t_next));
+    car_d_next = d_init + (d_end-d_init) /(1.0+exp(-c_d*t_next));
+    car_d_v_next= (d_end-d_init)* c_d*exp(-c_d*t_next) /(1.0+exp(-c_d*t_next))/(1.0+exp(-c_d*t_next));
+    car_d_a_next= (d_end-d_init)* c_d*c_d*exp(-c_d*t_next)*(exp(-c_d*t_next)-1) /(1.0+exp(-c_d*t_next))/(1.0+exp(-c_d*t_next))/(1.0+exp(-c_d*t_next));
 
 
     //cout << setw(25) << "==================================================================" << endl;
