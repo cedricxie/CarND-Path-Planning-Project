@@ -71,14 +71,19 @@ void trajectories_acceleration(vector<double> &start_states, vector<double> &end
     double car_speed_next;
     double car_a_next;
 
+    double car_d_next;
+    double car_d_v_next;
+    double car_d_a_next;
+
     double t_current;
+    double t_next;
 
     double car_s_current = start_states[0];
     double car_speed_current = start_states[1];
     double car_a_current = start_states[2];
 
-    if ( (car_speed_current-v_init)/(v_end - v_init) < 0.05){ t_current = -3.0;}
-    else if( (car_speed_current-v_init)/(v_end - v_init) > 0.95){ t_current = 3.0;}
+    if ( (car_speed_current-v_init)/(v_end - v_init) < 1.0/(1+exp(c*3.0)) ) { t_current = -3.0;}
+    else if( (car_speed_current-v_init)/(v_end - v_init) > 1.0/(1+exp(-c*3.0)) ) { t_current = 3.0;}
     else{ t_current = - log((v_end - v_init)/(car_speed_current-v_init) - 1.0)/c;}
 
     //car_s_current = prev_s + car_speed_max/c*log((exp(c*(t_current+t_inc/t_n))+1)/(exp(c*t_current)+1));
@@ -90,6 +95,15 @@ void trajectories_acceleration(vector<double> &start_states, vector<double> &end
     car_a_next = (v_end-v_init)*c*exp(-c*(t_current+double(t_inc)/t_n*(t_n+1.0)))/(1.0+exp(-c*(t_current+double(t_inc)/t_n*(t_n+1.0))))/(1.0+exp(-c*(t_current+double(t_inc)/t_n*(t_n+1.0))));
 
     end_states={car_s_next, car_speed_next, car_a_next};
+
+    if ( (prev_d-d_init)/(d_end - d_init) < 1.0/(1+exp(c*3.0)) ) { t_current = -3.0;}
+    else if( (prev_d-d_init)/(d_end - d_init) > 1.0/(1+exp(-c*3.0)) ) { t_current = 3.0;}
+    else{ t_current = - log((d_end - d_init)/(prev_d-d_init) - 1.0)/c;}
+
+    car_d_next = car_s_current + v_init*double(t_inc)/t_n*(t_n+1.0) + (v_end - v_init)/c * log((exp(c*(t_current+double(t_inc)/t_n*(t_n+1.0)))+1.0)/(exp(c*t_current)+1.0));
+    car_d_v_next = v_init + (v_end-v_init)*1.0/(1.0+exp(-c*(t_current+double(t_inc)/t_n*(t_n+1.0))));
+    car_d_a_next = (v_end-v_init)*c*exp(-c*(t_current+double(t_inc)/t_n*(t_n+1.0)))/(1.0+exp(-c*(t_current+double(t_inc)/t_n*(t_n+1.0))))/(1.0+exp(-c*(t_current+double(t_inc)/t_n*(t_n+1.0))));
+
 
     //cout << setw(25) << "==================================================================" << endl;
     //cout << setw(25) << "tmp output:  "<< car_speed_max << " " << (exp(c*(t_current+double(t_inc)/t_n*(t_n+1.0)))+1.0) << " " << (exp(c*t_current)+1.0) << " " << t_current << " " << t_inc << " " << t_n << endl;
