@@ -428,6 +428,7 @@ int main() {
 
             for(int i=0; i<sensor_car_list_mid.size(); i++){
               if(sensor_car_list_mid[sensor_car_list_mid.size()-i-1][1]>prev_s){
+                //for (int j=0; j<4; j++) { cout << sensor_car_list_mid[sensor_car_list_mid.size()-i-1][j] << " ";}
                 if (sensor_car_list_mid[sensor_car_list_mid.size()-i-1][1]<prev_s + car_speed_max*t_inc){
                   cout << setw(25) << "Attension: ";
                   for (int j=0; j<4; j++) { cout << sensor_car_list_mid[sensor_car_list_mid.size()-i-1][j] << " ";}

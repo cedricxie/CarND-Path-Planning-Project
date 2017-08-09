@@ -82,6 +82,10 @@ void trajectories_acceleration(vector<double> &start_states, vector<double> &end
     double car_speed_current = start_states[1];
     double car_a_current = start_states[2];
 
+    double car_d_current;
+    double car_d_v_current;
+    double car_d_a_current;
+
     if ( (car_speed_current-v_init)/(v_end - v_init) < 1.0/(1+exp(c*3.0)) ) { t_current = -3.0;}
     else if( (car_speed_current-v_init)/(v_end - v_init) > 1.0/(1+exp(-c*3.0)) ) { t_current = 3.0;}
     else{ t_current = - log((v_end - v_init)/(car_speed_current-v_init) - 1.0)/c;}
@@ -96,13 +100,20 @@ void trajectories_acceleration(vector<double> &start_states, vector<double> &end
 
     end_states={car_s_next, car_speed_next, car_a_next};
 
-    if ( (prev_d-d_init)/(d_end - d_init) < 1.0/(1+exp(c*3.0)) ) { t_current = -3.0;}
+    if (abs(prev_d - d_end)<0.01){ t_current = 3.0; }
+    else if ( (prev_d-d_init)/(d_end - d_init) < 1.0/(1+exp(c*3.0)) ) { t_current = -3.0;}
     else if( (prev_d-d_init)/(d_end - d_init) > 1.0/(1+exp(-c*3.0)) ) { t_current = 3.0;}
     else{ t_current = - log((d_end - d_init)/(prev_d-d_init) - 1.0)/c;}
 
-    car_d_next = car_s_current + v_init*double(t_inc)/t_n*(t_n+1.0) + (v_end - v_init)/c * log((exp(c*(t_current+double(t_inc)/t_n*(t_n+1.0)))+1.0)/(exp(c*t_current)+1.0));
-    car_d_v_next = v_init + (v_end-v_init)*1.0/(1.0+exp(-c*(t_current+double(t_inc)/t_n*(t_n+1.0))));
-    car_d_a_next = (v_end-v_init)*c*exp(-c*(t_current+double(t_inc)/t_n*(t_n+1.0)))/(1.0+exp(-c*(t_current+double(t_inc)/t_n*(t_n+1.0))))/(1.0+exp(-c*(t_current+double(t_inc)/t_n*(t_n+1.0))));
+    t_next = t_current + double(t_inc)/t_n*(t_n+1.0);
+
+    car_d_current = prev_d;
+    car_d_v_current = (d_end-d_init)* c*exp(-c*t_current) /(1.0+exp(-c*t_current))/(1.0+exp(-c*t_current));
+    car_d_a_current = (d_end-d_init)* c*c*exp(-c*t_current)*(exp(-c*t_current)-1) /(1.0+exp(-c*t_current))/(1.0+exp(-c*t_current))/(1.0+exp(-c*t_current));
+
+    car_d_next = d_init + (d_end-d_init) /(1.0+exp(-c*t_next));
+    car_d_v_current = (d_end-d_init)* c*exp(-c*t_next) /(1.0+exp(-c*t_next))/(1.0+exp(-c*t_next));
+    car_d_a_current = (d_end-d_init)* c*c*exp(-c*t_next)*(exp(-c*t_next)-1) /(1.0+exp(-c*t_next))/(1.0+exp(-c*t_next))/(1.0+exp(-c*t_next));
 
 
     //cout << setw(25) << "==================================================================" << endl;
@@ -112,6 +123,7 @@ void trajectories_acceleration(vector<double> &start_states, vector<double> &end
     //cout << setw(25) << "==================================================================" << endl;
 
     vector <double> trajectory_coeffs = JMT(start_states, end_states, t_inc);
+    vector <double> trajectory_coeffs_d = JMT({car_d_current, car_d_v_current, car_d_a_current}, {car_d_next, car_d_v_next, car_d_a_next}, t_inc);
     //cout << setw(25) << "JML Coefficients: ";
     //for (auto const& k : trajectory_coeffs) std::cout << k << ' ';
     //cout << endl;
@@ -126,7 +138,8 @@ void trajectories_acceleration(vector<double> &start_states, vector<double> &end
       //cout << setw(25) << "pushed in s:  "<< s_evl(car_s_current, t_current, car_speed_max, c, t_inc/t_n*i) << endl;
       //cout << setw(25) << "pushed in s:  "<< trj_evl(trajectory_coeffs, double(t_inc)/t_n*i) << endl;
       s_history.push_back(trj_evl(trajectory_coeffs, double(t_inc)/t_n*i));
-      d_history.push_back(prev_d);
+      //d_history.push_back(prev_d);
+      d_history.push_back(trj_evl(trajectory_coeffs_d, double(t_inc)/t_n*i));
       //next_x_vals.push_back(tmp_status[0]);
       //next_y_vals.push_back(tmp_status[1]);
     }
