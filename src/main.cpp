@@ -422,9 +422,9 @@ int main() {
             //***************************************************//
             double v_init = 0.0;
             double v_end = car_speed_max;
-			
-			double d_init = car_d_init;
-			double d_end = car_d_init;
+
+            double d_init = car_d_init;
+            double d_end = car_d_init;
 
             for(int i=0; i<sensor_car_list_mid.size(); i++){
               if(sensor_car_list_mid[sensor_car_list_mid.size()-i-1][1]>prev_s){
