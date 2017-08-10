@@ -99,7 +99,7 @@ void trajectories_generation(vector<double> &start_states, vector<double> &end_s
     car_a_next = (v_end-v_init)*c*exp(-c*(t_current+double(t_inc)/t_n*(t_n+1.0)))/(1.0+exp(-c*(t_current+double(t_inc)/t_n*(t_n+1.0))))/(1.0+exp(-c*(t_current+double(t_inc)/t_n*(t_n+1.0))));
 
     end_states={car_s_next, car_speed_next, car_a_next};
-    //cout << t_current << " " << v_init << " " << v_end << " " << car_speed_next << endl;
+    //cout << t_current << " " << car_speed_current << " " << v_init << " " << v_end << " " << car_speed_next << endl;
 
     if (abs(prev_d - d_end)<0.01){ t_current = -2.0; }
     else if ( (prev_d-d_init)/(d_end - d_init) < 1.0/(1+exp(c_d*2.0)) ) { t_current = -2.0;}
@@ -115,7 +115,6 @@ void trajectories_generation(vector<double> &start_states, vector<double> &end_s
     car_d_next = d_init + (d_end-d_init) /(1.0+exp(-c_d*t_next));
     car_d_v_next= (d_end-d_init)* c_d*exp(-c_d*t_next) /(1.0+exp(-c_d*t_next))/(1.0+exp(-c_d*t_next));
     car_d_a_next= (d_end-d_init)* c_d*c_d*exp(-c_d*t_next)*(exp(-c_d*t_next)-1) /(1.0+exp(-c_d*t_next))/(1.0+exp(-c_d*t_next))/(1.0+exp(-c_d*t_next));
-
 
     //cout << setw(25) << "==================================================================" << endl;
     //cout << setw(25) << "tmp output:  "<< car_speed_max << " " << (exp(c*(t_current+double(t_inc)/t_n*(t_n+1.0)))+1.0) << " " << (exp(c*t_current)+1.0) << " " << t_current << " " << t_inc << " " << t_n << endl;
