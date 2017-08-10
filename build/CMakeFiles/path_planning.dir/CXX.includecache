@@ -814,6 +814,10 @@ lapacke_mangling.h
 
 /Users/cedricxie/CarND-Path-Planning-Project/src/Eigen-3.3/Eigen/src/plugins/MatrixCwiseUnaryOps.h
 
+/Users/cedricxie/CarND-Path-Planning-Project/src/behaviors.h
+
+/Users/cedricxie/CarND-Path-Planning-Project/src/costs.h
+
 /Users/cedricxie/CarND-Path-Planning-Project/src/json.hpp
 algorithm
 -
@@ -899,8 +903,16 @@ map.h
 /Users/cedricxie/CarND-Path-Planning-Project/src/map.h
 trajectories.h
 /Users/cedricxie/CarND-Path-Planning-Project/src/trajectories.h
+sensor.h
+/Users/cedricxie/CarND-Path-Planning-Project/src/sensor.h
+behaviors.h
+/Users/cedricxie/CarND-Path-Planning-Project/src/behaviors.h
+costs.h
+/Users/cedricxie/CarND-Path-Planning-Project/src/costs.h
 
 /Users/cedricxie/CarND-Path-Planning-Project/src/map.h
+
+/Users/cedricxie/CarND-Path-Planning-Project/src/sensor.h
 
 /Users/cedricxie/CarND-Path-Planning-Project/src/spline.h
 cstdio

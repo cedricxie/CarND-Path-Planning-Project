@@ -168,9 +168,12 @@ CMakeFiles/path_planning.dir/src/main.cpp.o: ../src/Eigen-3.3/Eigen/src/plugins/
 CMakeFiles/path_planning.dir/src/main.cpp.o: ../src/Eigen-3.3/Eigen/src/plugins/CommonCwiseUnaryOps.h
 CMakeFiles/path_planning.dir/src/main.cpp.o: ../src/Eigen-3.3/Eigen/src/plugins/MatrixCwiseBinaryOps.h
 CMakeFiles/path_planning.dir/src/main.cpp.o: ../src/Eigen-3.3/Eigen/src/plugins/MatrixCwiseUnaryOps.h
+CMakeFiles/path_planning.dir/src/main.cpp.o: ../src/behaviors.h
+CMakeFiles/path_planning.dir/src/main.cpp.o: ../src/costs.h
 CMakeFiles/path_planning.dir/src/main.cpp.o: ../src/json.hpp
 CMakeFiles/path_planning.dir/src/main.cpp.o: ../src/main.cpp
 CMakeFiles/path_planning.dir/src/main.cpp.o: ../src/map.h
+CMakeFiles/path_planning.dir/src/main.cpp.o: ../src/sensor.h
 CMakeFiles/path_planning.dir/src/main.cpp.o: ../src/spline.h
 CMakeFiles/path_planning.dir/src/main.cpp.o: ../src/trajectories.h
 CMakeFiles/path_planning.dir/src/main.cpp.o: /usr/local/include/pthread-barrier.h
