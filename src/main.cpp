@@ -57,6 +57,7 @@ int car_lane_end_global = 0;
 
 bool lane_keeping_flag = true;
 double lane_keeping_buffer = 50.0;
+double lane_keeping_buffer_v = 1.0;
 
 double lane_change_flag = true;
 double lane_change_buffer = 20.0;
@@ -316,38 +317,13 @@ int main() {
             else{
               prev_path_size = path_size;
             }
-
-            for(int i = 0; i < prev_path_size; i++)
-            {
-                next_x_vals.push_back(previous_path_x[i]);
-                next_y_vals.push_back(previous_path_y[i]);
-            }
-            //***************************************************//
-            //Evaluate Previous State
-            //***************************************************//
-            //cout << setw(25) << "all path points in the prev list: " << endl;
-            //for (int i = 0; i<path_size; i++) cout << previous_path_x[i] << ' ' << previous_path_y[i] << ' ' << endl;
             if (s_history.size()>2){
-              prev_s = s_history[s_history.size()-1];
-              prev_speed = (s_history[s_history.size()-1] - s_history[s_history.size()-2])/(t_inc/t_n);
-              prev_speed2 = (s_history[s_history.size()-2] - s_history[s_history.size()-3])/(t_inc/t_n);
-              prev_a = (prev_speed - prev_speed2)/(t_inc/t_n);
               car_s_tmp = s_history[(int)t_n - prev_path_size - 1]; //corrected current car_s
               s_history.erase( s_history.begin(), s_history.begin() + (int)t_n - prev_path_size );
-              //cout << setw(25) << "s_history list size: " << s_history.size() << "all path points in the s_history list: " << endl;
-              //for (int i = 0; i<s_history.size(); i++) cout << s_history[i] << ' ' << endl;
-              prev_d = d_history[d_history.size()-1];
               d_history.erase( d_history.begin(), d_history.begin() + (int)t_n - prev_path_size );
-            }
-            else{
-              prev_s = car_s_init;
-              prev_speed = 0.0;
-              prev_a = 0.0;
-              prev_d = car_d_init;
             }
 
             iter_count++;
-            path_count += max_prev_path_size - prev_path_size;
 
             cout << scientific;
             cout << left;
@@ -356,9 +332,7 @@ int main() {
             cout << setw(25) << "Start Iteration: " << iter_count << endl;
             cout << setw(25) << "==================================================================" << endl;
             //cout << setw(25) << "pseudo t:  "<< t_current << endl;
-            cout << setw(25) << "added path size:  "<< int(t_n) - prev_path_size << " total added path size:  "
-            << path_count << endl;
-            cout << setw(25) << "current status :  "<< car_s << " " << car_s_tmp << " " << car_d << " " << car_speed << " "
+            cout << setw(25) << "current status :  "<< car_s << " " << car_d << " " << car_speed << " "
             << car_x << " " << car_y << " "   << endl;}
 
             sensor_processing(sensor_fusion, sensor_car_list_left, sensor_car_list_mid, sensor_car_list_right);
@@ -374,6 +348,8 @@ int main() {
             double d_end = car_d_init + car_lane_end_global * car_lane_width;
 
             lane_keeping(sensor_car_list_mid, car_s, prev_s, lane_keeping_buffer, v_init, v_end, car_speed, lane_keeping_flag);
+
+            double prev_path_size_kept = s_history.size();
 
             //cout << v_init  << " " << v_end << endl;
 
@@ -397,25 +373,52 @@ int main() {
             cout << setw(25) << "Trajectories Generation" << endl;
             cout << setw(25) << "==================================================================" << endl;}
 
+            //***************************************************//
+            //Evaluate Previous State
+            //***************************************************//
+            //cout << setw(25) << "all path points in the prev list: " << endl;
+            //for (int i = 0; i<path_size; i++) cout << previous_path_x[i] << ' ' << previous_path_y[i] << ' ' << endl;
+            if (s_history.size()>2){
+              prev_s = s_history[s_history.size()-1];
+              prev_speed = (s_history[s_history.size()-1] - s_history[s_history.size()-2])/(t_inc/t_n);
+              prev_speed2 = (s_history[s_history.size()-2] - s_history[s_history.size()-3])/(t_inc/t_n);
+              prev_a = (prev_speed - prev_speed2)/(t_inc/t_n);
+              prev_d = d_history[d_history.size()-1];
+            }
+            else{
+              prev_s = car_s_init;
+              prev_speed = 0.0;
+              prev_a = 0.0;
+              prev_d = car_d_init;
+            }
+
             start = {prev_s, prev_speed, prev_a};
             //end = {car_s_next, car_speed_next, car_a_next};
 
-            trajectories_generation(start, end, s_history, v_init, v_end, prev_d, d_history, d_init, d_end, max_prev_path_size - prev_path_size,
+            trajectories_generation(start, end, s_history, v_init, v_end, prev_d, d_history, d_init, d_end, max_prev_path_size - prev_path_size_kept,
               t_inc, t_n, car_speed_max, c, c_d);
 
             //cout << "current speed: "  << car_speed << endl;
 
+            //cout << setw(25) << "==================================================================" << endl;
             //***************************************************//
             //Output Next Path States
             //***************************************************//
-            //cout << setw(25) << "==================================================================" << endl;
-          	for(int i = 0; i < max_prev_path_size - prev_path_size; i++)
+            for(int i = 0; i < prev_path_size_kept; i++)
+            {
+                next_x_vals.push_back(previous_path_x[i]);
+                next_y_vals.push_back(previous_path_y[i]);
+            }
+
+            path_count += max_prev_path_size - prev_path_size_kept;
+            //cout << setw(25) << "current time: " << 0.02*(path_count-150) << " added path size:  "<< int(t_n - prev_path_size_kept) << " total added path size:  " << path_count << endl;
+
+          	for(int i = 0; i < max_prev_path_size - prev_path_size_kept; i++)
           	{
-              tmp_status = getXY_spline(s_history[s_history.size()-max_prev_path_size+prev_path_size+i], d_history[d_history.size()-max_prev_path_size+prev_path_size+i], s_x, s_y, s_dx, s_dy);
+              tmp_status = getXY_spline(s_history[prev_path_size_kept+i], d_history[prev_path_size_kept+i], s_x, s_y, s_dx, s_dy);
               //cout << "index: " << s_history.size() << " " << max_prev_path_size << " " << prev_path_size << " " << i << endl;
               if (dflag>=dflag_general)
-              {cout << setw(25) << "pushed in s, d:  "<< s_history[s_history.size()-max_prev_path_size+prev_path_size+i] << " "
-              << d_history[d_history.size()-max_prev_path_size+prev_path_size+i] << " "
+              {cout << setw(25) << "pushed in s, d:  "<< s_history[prev_path_size_kept+i] << " "<< d_history[prev_path_size_kept+i] << " "
               << tmp_status[0] << " " << tmp_status[1] << endl;}
               next_x_vals.push_back(tmp_status[0]);
           	  next_y_vals.push_back(tmp_status[1]);
