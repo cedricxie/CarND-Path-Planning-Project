@@ -10,8 +10,6 @@
 #include "Eigen-3.3/Eigen/LU"
 #include "json.hpp"
 #include "spline.h"
-#include "map.h"
-#include "trajectories.h"
 
 using namespace std;
 using Eigen::MatrixXd;
@@ -40,9 +38,10 @@ int dflag_getXY_full = 8;
 int path_count=0;
 int iter_count=0;
 double max_s = 6945.554;
+double car_lane_width = 4.0;
 
-double t_inc = 5;
-double t_n = 250;
+double t_inc = 3;
+double t_n = 150;
 double c = 2.0;
 double c_d = 2.0;
 double car_speed_max = 20.0;
@@ -52,14 +51,24 @@ int max_prev_path_size = t_n;
 
 double car_v_init_global = 0.0;
 double car_v_end_global = car_speed_max;
+
 int car_lane_init_global = 0;
 int car_lane_end_global = 0;
-double car_lane_width = 4.0;
 
-bool flag = true;
+bool lane_keeping_flag = true;
+double lane_keeping_buffer = 50.0;
+
+double lane_change_flag = true;
+double lane_change_buffer = 20.0;
 
 vector<double> s_history;
 vector<double> d_history;
+
+#include "map.h"
+#include "trajectories.h"
+#include "sensor.h"
+#include "behaviors.h"
+#include "costs.h"
 
 // Checks if the SocketIO event has JSON data.
 // If there is data the JSON object in string format will be returned,
@@ -352,128 +361,49 @@ int main() {
             cout << setw(25) << "current status :  "<< car_s << " " << car_s_tmp << " " << car_d << " " << car_speed << " "
             << car_x << " " << car_y << " "   << endl;}
 
-            //***************************************************//
-            //Analyze Sensor Information
-            //***************************************************//
-            sensor_list_size = sensor_fusion.size();
-            for (int i=0; i<sensor_list_size; i++){
-              //cout << sensor_fusion[i][0] << endl;
-              double sensor_id = sensor_fusion[i][0];
-              double sensor_vx = sensor_fusion[i][3];
-              double sensor_vy = sensor_fusion[i][4];
-              double sensor_s = sensor_fusion[i][5];
-              double sensor_d = sensor_fusion[i][6];
-              double sensor_v = sqrt(sensor_vx*sensor_vx+sensor_vy*sensor_vy);
-              if (sensor_d>8.0){
-                if (sensor_car_list_right.size()==0){
-                  sensor_car_list_right.push_back({sensor_id, sensor_s, sensor_d, sensor_v});
-                }
-                else{
-                  for(int j=0; j<sensor_car_list_right.size(); j++){
-                    if(sensor_s>sensor_car_list_right[j][1]){
-                      sensor_car_list_right.insert(sensor_car_list_right.begin()+j, {sensor_id, sensor_s, sensor_d, sensor_v});
-                      break;
-                    }
-                  }
-                }
-              }
-              else if(sensor_d>4.0){
-                if (sensor_car_list_right.size()==0){
-                  sensor_car_list_mid.push_back({sensor_id, sensor_s, sensor_d, sensor_v});
-                }
-                else{
-                  for(int j=0; j<sensor_car_list_mid.size(); j++){
-                    if(sensor_s>sensor_car_list_mid[j][1]){
-                      sensor_car_list_mid.insert(sensor_car_list_mid.begin()+j, {sensor_id, sensor_s, sensor_d, sensor_v});
-                      break;
-                    }
-                  }
-                }
-              }
-              else{
-                if (sensor_car_list_left.size()==0){
-                  sensor_car_list_left.push_back({sensor_id, sensor_s, sensor_d, sensor_v});
-                }
-                else{
-                  for(int j=0; j<sensor_car_list_left.size(); j++){
-                    if(sensor_s>sensor_car_list_left[j][1]){
-                      sensor_car_list_left.insert(sensor_car_list_left.begin()+j, {sensor_id, sensor_s, sensor_d, sensor_v});
-                      break;
-                    }
-                  }
-                }
-              }
-            }
-
-
-            /*cout << setw(25) << "Sensor Info for Right Lane" << endl;
-            for(int i=0; i<sensor_car_list_right.size(); i++){
-              for(int j=0; j<4; j++){
-                cout << sensor_car_list_right[i][j] << " ";
-              }
-              cout << endl;
-            }
-            cout << setw(25) << "Sensor Info for Mid Lane" << endl;
-            for(int i=0; i<sensor_car_list_mid.size(); i++){
-              for(int j=0; j<4; j++){
-                cout << sensor_car_list_mid[i][j] << " ";
-              }
-              cout << endl;
-            }
-            cout << setw(25) << "Sensor Info for Left Lane" << endl;
-            for(int i=0; i<sensor_car_list_left.size(); i++){
-              for(int j=0; j<4; j++){
-                cout << sensor_car_list_left[i][j] << " ";
-              }
-              cout << endl;
-            }*/
+            sensor_processing(sensor_fusion, sensor_car_list_left, sensor_car_list_mid, sensor_car_list_right);
 
             //***************************************************//
             //Behavior Planning
             //***************************************************//
+
             double v_init = car_v_init_global;
             double v_end = car_v_end_global;
 
             double d_init = car_d_init + car_lane_init_global * car_lane_width;
             double d_end = car_d_init + car_lane_end_global * car_lane_width;
 
-            cout << "Output Sensor Mid Lane: " << endl;
-            for(int i=0; i<sensor_car_list_mid.size(); i++){
-              for (int j=0; j<4; j++) { cout << sensor_car_list_mid[sensor_car_list_mid.size()-i-1][j] << " ";}
-              cout << endl;
-              if(sensor_car_list_mid[sensor_car_list_mid.size()-i-1][1]>car_s_tmp){
-                if (sensor_car_list_mid[sensor_car_list_mid.size()-i-1][1]<prev_s + car_speed_max*t_inc){
-                  cout << setw(25) << "Attension: ";
-                  for (int j=0; j<4; j++) { cout << sensor_car_list_mid[sensor_car_list_mid.size()-i-1][j] << " ";}
-                  cout << endl;
-                  //cout << setw(25) << "Slow down speed to: " << sensor_car_list_mid[sensor_car_list_mid.size()-i-1][3] << endl;
-                  //v_end = sensor_car_list_mid[sensor_car_list_mid.size()-i-1][3];
-                  if (flag){
-                    cout << setw(25) << "Change lane started: " << -1 << endl;
-                    car_lane_init_global = car_lane_end_global;
-                    car_lane_end_global = car_lane_end_global  - 1;
-                    flag = false;
-                  }
-                  else{
-                    if (abs(prev_d - d_end) < 0.01) {
-                      car_lane_init_global = car_lane_end_global;
-                      cout << setw(25) << "Change lane completed: " << -1 << endl;
-                    }
-                  }
-                }
-              }
+            lane_keeping(sensor_car_list_mid, car_s, prev_s, lane_keeping_buffer, v_init, v_end, car_speed, lane_keeping_flag);
+
+            //cout << v_init  << " " << v_end << endl;
+
+            //car_v_init_global = v_init;
+            //car_v_end_global = v_end;
+            /*if (flag){
+              cout << setw(25) << "Change lane started: " << -1 << endl;
+              car_lane_init_global = car_lane_end_global;
+              car_lane_end_global = car_lane_end_global  - 1;
+              flag = false;
             }
+            else{
+              if (abs(prev_d - d_end) < 0.01) {
+                car_lane_init_global = car_lane_end_global;
+                cout << setw(25) << "Change lane completed: " << -1 << endl;
+              }
+            }*/
 
             if (dflag>=dflag_general)
-            {cout << setw(25) << "==================================================================" << endl;
-            cout << setw(25) << "Single Lane Acceleration" << endl;
+            {cout << setw(25) <<"==================================================================" << endl;
+            cout << setw(25) << "Trajectories Generation" << endl;
             cout << setw(25) << "==================================================================" << endl;}
 
             start = {prev_s, prev_speed, prev_a};
             //end = {car_s_next, car_speed_next, car_a_next};
 
-            trajectories_acceleration(start, end, s_history, v_init, v_end, prev_d, d_history, d_init, d_end, max_prev_path_size - prev_path_size,
+            trajectories_generation(start, end, s_history, v_init, v_end, prev_d, d_history, d_init, d_end, max_prev_path_size - prev_path_size,
               t_inc, t_n, car_speed_max, c, c_d);
+
+            //cout << "current speed: "  << car_speed << endl;
 
             //***************************************************//
             //Output Next Path States
