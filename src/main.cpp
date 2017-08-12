@@ -31,7 +31,10 @@ double mph2ms(double x) {return x*1609.34/3600;}
 int dflag = 0;
 // Debug level
 int dflag_general = 1;
-int dflag_fitting = 3;
+int dflag_cost = 2;
+int dflag_cost_details = 3;
+int dflag_sensor_details = 3;
+int dflag_fitting = 5;
 int dflag_getXY_short = 7;
 int dflag_getXY_full = 8;
 
@@ -60,7 +63,7 @@ double lane_keeping_buffer = 5.0;
 double lane_keeping_buffer_v = 1.0;
 
 bool lane_changing_flag = true;
-double lane_change_buffer = 25.0;
+double lane_change_buffer = 20.0;
 
 vector<double> s_history;
 vector<double> d_history;
@@ -333,7 +336,7 @@ int main() {
 
             cout << scientific;
             cout << left;
-            //if (dflag>=dflag_general)
+            if (dflag>=dflag_general)
             {cout << setw(25) << "==================================================================" << endl;
             cout << setw(25) << "Start Iteration: " << iter_count << endl;
             cout << setw(25) << "==================================================================" << endl;
@@ -341,7 +344,7 @@ int main() {
             cout << setw(25) << "current status :  "<< car_s << " " << car_d << " " << car_d_end_global << " " << car_speed << " " << car_v_end_global << endl;}
             //<< car_x << " " << car_y << " "   << endl;}
 
-            sensor_processing(sensor_fusion, sensor_car_list_left, sensor_car_list_mid, sensor_car_list_right);
+            sensor_processing(sensor_fusion, sensor_car_list_left, sensor_car_list_mid, sensor_car_list_right, car_s);
 
             //***************************************************//
             //Behavior Planning
@@ -358,6 +361,7 @@ int main() {
             cout << setw(25) <<"==================================================================" << endl;
             next_signal = next_state(car_s, car_d, car_speed, sensor_car_list_left, sensor_car_list_mid, sensor_car_list_right);
             cout << setw(25) << "NEXT SIGNAL: " << next_signal << " FLAGS " << lane_keeping_flag << " " << lane_changing_flag << endl;
+            if (lane_keeping_flag==false){cout << "Current speed: " << car_speed << " Speed target: " << car_v_end_global << endl;}
             if ( (next_signal == 0) && (lane_changing_flag==true) ){
               if (car_d> 2.0*car_lane_width){
                 lane_keeping(sensor_car_list_right, car_s, prev_s, lane_keeping_buffer, v_init, v_end, car_speed, lane_keeping_flag);
