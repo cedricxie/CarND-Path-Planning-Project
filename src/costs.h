@@ -34,7 +34,7 @@ double cost_speed(double car_s, double car_speed, vector<vector<double>> sensor_
     car_speed_expected = car_speed_max;
   }
 
-  cout << "Expected car speed: " << car_speed_expected << endl;
+  if (dflag>=dflag_cost_details) {cout << "Expected car speed: " << car_speed_expected << endl;}
 
   return efficiency*(1.0-car_speed_expected/car_speed_max);
 }
@@ -45,14 +45,18 @@ double cost_collision(double car_s, double car_speed, vector<vector<double>> sen
   int idx = -1;
 
   for(int i=0; i<sensor_car_list_end.size(); i++){
-    if(sensor_car_list_end[sensor_car_list_end.size()-i-1][1]>car_s && idx == -1){ idx = sensor_car_list_end.size()-i-1;}
+
+    //cout << "All cars in the lane: " << sensor_car_list_end[sensor_car_list_end.size()-i-1][1]-car_s << endl;
+    if(sensor_car_list_end[sensor_car_list_end.size()-i-1][1]>car_s){
+      if (idx == -1) {idx = sensor_car_list_end.size()-i-1;}
+    }
   }
   //cout << setw(25) << "cost_collision idx: " << idx << " out of " << sensor_car_list_end.size() << endl;
 
   if ((idx==-1) && (sensor_car_list_end.size()!=0) ){
     double s1 = sensor_car_list_end[0][1];
     double v1 = sensor_car_list_end[0][3];
-    if( s1+v1*t_inc+lane_change_buffer > car_s+car_speed*t_inc){
+    if( s1+v1*t_inc+0.5*lane_change_buffer > car_s+car_speed*t_inc){
       cout << "CAUTIOUS!!! " << s1 - car_s << " " << v1 - car_speed << endl;
       return collision;
     }
@@ -72,7 +76,7 @@ double cost_collision(double car_s, double car_speed, vector<vector<double>> sen
     double v1 = sensor_car_list_end[idx+1][3];
     double s2 = sensor_car_list_end[idx][1];
     double v2 = sensor_car_list_end[idx][3];
-    if( s1+v1*t_inc+lane_change_buffer > car_s+car_speed*t_inc){
+    if( s1+v1*t_inc+0.5*lane_change_buffer > car_s+car_speed*t_inc){
       cout << "CAUTIOUS!!! " << s1 - car_s << " " << v1 - car_speed << endl;
       return collision;
     }
@@ -91,12 +95,12 @@ double cost_evaluation(vector<double> car_states, vector<vector<double>> sensor_
   double cost_comfort=0, cost_safety=0, cost_efficiency=0;
 
   cost_comfort = cost_lane_change(car_states[1], car_states[2]);
-  cout << setw(25) << "cost for comfort: " << cost_comfort << endl;
+  if (dflag>=dflag_cost) {cout << setw(25) << "cost for comfort: " << cost_comfort << endl;}
   cost_efficiency = cost_speed(car_states[0], car_states[3], sensor_car_list_current);
-  cout << setw(25) << "cost for efficiency: " << cost_efficiency << endl;
+  if (dflag>=dflag_cost) {cout << setw(25) << "cost for efficiency: " << cost_efficiency << endl;}
   if (abs(car_states[1]-car_states[2]) > 0.01*car_lane_width )
   {cost_safety = cost_collision(car_states[0], car_states[3], sensor_car_list_current);}
-  cout << setw(25) << "cost for safety: " << cost_safety << endl;
+  if (dflag>=dflag_cost) {cout << setw(25) << "cost for safety: " << cost_safety << endl;}
 
   cost_total = cost_comfort + cost_safety + cost_efficiency;
 
@@ -111,56 +115,56 @@ int next_state(double car_s, double car_d, double car_speed, vector<vector<doubl
 
     if (car_d>2.0*car_lane_width){
 
-      cout << setw(25) << "Current in right lane: "<< endl;
+      if(dflag>=dflag_cost) {cout << setw(25) << "Currently in right lane: "<< endl;}
 
-      cout << setw(25) << "Cost details for lane changing to left: " << endl;
+      if(dflag>=dflag_cost_details) {cout << setw(25) << "Cost details for lane changing to left: " << endl;}
       car_states = {car_s, car_d, car_d-car_lane_width, car_speed};
       cost_lane_change_left = cost_evaluation(car_states, sensor_car_list_mid);
-      cout << setw(40) << "Cost total for lane changing to left: " << cost_lane_change_left << endl;
+      if(dflag>=dflag_cost_details) {cout << setw(40) << "Cost total for lane changing to left: " << cost_lane_change_left << endl;}
 
-      cout << setw(25) << "Cost details for lane keeping: " << endl;
+      if(dflag>=dflag_cost_details) {cout << setw(25) << "Cost details for lane keeping: " << endl;}
       car_states = {car_s, car_d, car_d, car_speed};
       cost_lane_keeping = cost_evaluation(car_states, sensor_car_list_right);
-      cout << setw(40) << "Cost total for lane keeping: " << cost_lane_keeping << endl;
+      if(dflag>=dflag_cost_details) {cout << setw(40) << "Cost total for lane keeping: " << cost_lane_keeping << endl;}
 
       if (cost_lane_change_left < cost_lane_keeping){return -1;}
       else{return 0;}
     }
     else if(car_d>1.0*car_lane_width){
 
-      cout << setw(25) << "Current in mid lane: "<< endl;
+      if(dflag>=dflag_cost) {cout << setw(25) << "Currently in mid lane: "<< endl;}
 
-      cout << setw(25) << "Cost details for lane changing to left: " << endl;
+      if(dflag>=dflag_cost_details) {cout << setw(25) << "Cost details for lane changing to left: " << endl;}
       car_states = {car_s, car_d, car_d-car_lane_width, car_speed};
       cost_lane_change_left = cost_evaluation(car_states, sensor_car_list_left);
-      cout << setw(40) << "Cost total for lane changing to left: " << cost_lane_change_left << endl;
+      if(dflag>=dflag_cost_details) {cout << setw(40) << "Cost total for lane changing to left: " << cost_lane_change_left << endl;}
 
-      cout << setw(25) << "Cost details for lane keeping: " << endl;
+      if(dflag>=dflag_cost_details) {cout << setw(25) << "Cost details for lane keeping: " << endl;}
       car_states = {car_s, car_d, car_d, car_speed};
       cost_lane_keeping = cost_evaluation(car_states, sensor_car_list_mid);
-      cout << setw(40) << "Cost total for lane keeping: " << cost_lane_keeping << endl;
+      if(dflag>=dflag_cost_details) {cout << setw(40) << "Cost total for lane keeping: " << cost_lane_keeping << endl;}
 
-      cout << setw(25) << "Cost details for lane changing to right: " << endl;
+      if(dflag>=dflag_cost_details) {cout << setw(25) << "Cost details for lane changing to right: " << endl;}
       car_states = {car_s, car_d, car_d+car_lane_width, car_speed};
       cost_lane_change_right = cost_evaluation(car_states, sensor_car_list_right);
-      cout << setw(40) << "Cost total for lane changing to right: " << cost_lane_change_right << endl;
+      if(dflag>=dflag_cost_details) {cout << setw(40) << "Cost total for lane changing to right: " << cost_lane_change_right << endl;}
 
       if (cost_lane_change_left < cost_lane_keeping && cost_lane_change_left < cost_lane_change_right){return -1;}
       else if(cost_lane_change_right < cost_lane_keeping && cost_lane_change_right < cost_lane_change_left){return 1;}
       else{return 0;}
     }
     else{
-      cout << setw(25) << "Current in left lane: "<< endl;
+      if(dflag>=dflag_cost) {cout << setw(25) << "Currently in left lane: "<< endl;}
 
-      cout << setw(25) << "Cost details for lane keeping: " << endl;
+      if(dflag>=dflag_cost_details) {cout << setw(25) << "Cost details for lane keeping: " << endl;}
       car_states = {car_s, car_d, car_d, car_speed};
       cost_lane_keeping = cost_evaluation(car_states, sensor_car_list_left);
-      cout << setw(40) << "Cost total for lane keeping: " << cost_lane_keeping << endl;
+      if(dflag>=dflag_cost_details) {cout << setw(40) << "Cost total for lane keeping: " << cost_lane_keeping << endl;}
 
-      cout << setw(25) << "Cost details for lane changing to right: " << endl;
+      if(dflag>=dflag_cost_details) {cout << setw(25) << "Cost details for lane changing to right: " << endl;}
       car_states = {car_s, car_d, car_d+car_lane_width, car_speed};
       cost_lane_change_right = cost_evaluation(car_states, sensor_car_list_mid);
-      cout << setw(40) << "Cost total for lane changing to right: " << cost_lane_change_right << endl;
+      if(dflag>=dflag_cost) {cout << setw(40) << "Cost total for lane changing to right: " << cost_lane_change_right << endl;}
 
       if (cost_lane_change_right < cost_lane_keeping ){return 1;}
       else{return 0;}
