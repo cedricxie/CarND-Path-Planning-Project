@@ -55,15 +55,15 @@ int max_prev_path_size = t_n;
 double car_v_init_global = 0.0;
 double car_v_end_global = car_speed_max;
 
-double  car_d_init_global = 6.164833e+00;
-double car_d_end_global = 6.164833e+00;
+double  car_d_init_global = car_d_init;
+double car_d_end_global = car_d_init;
 
 bool lane_keeping_flag = true;
 double lane_keeping_buffer = 5.0;
 double lane_keeping_buffer_v = 1.0;
 
 bool lane_changing_flag = true;
-double lane_change_buffer = 20.0;
+double lane_change_buffer = 25.0;
 
 vector<double> s_history;
 vector<double> d_history;
@@ -312,7 +312,7 @@ int main() {
             vector <double> tmp_status;
             double car_s_tmp;
             //***************************************************//
-            //Import Previous States
+            //Read and Initialize Previous States
             //***************************************************//
             if (path_size > max_prev_path_size){
               prev_path_size = max_prev_path_size;
@@ -321,6 +321,12 @@ int main() {
               prev_path_size = path_size;
             }
             if (s_history.size()>2){
+              prev_s = s_history[s_history.size()-1];
+              prev_speed = (s_history[s_history.size()-1] - s_history[s_history.size()-2])/(t_inc/t_n);
+              prev_speed2 = (s_history[s_history.size()-2] - s_history[s_history.size()-3])/(t_inc/t_n);
+              prev_a = (prev_speed - prev_speed2)/(t_inc/t_n);
+              prev_d = d_history[d_history.size()-1];
+
               car_s_tmp = s_history[(int)t_n - prev_path_size - 1]; //corrected current car_s
               s_history.erase( s_history.begin(), s_history.begin() + (int)t_n - prev_path_size );
               d_history.erase( d_history.begin(), d_history.begin() + (int)t_n - prev_path_size );
@@ -344,48 +350,47 @@ int main() {
             cout << setw(25) << "current status :  "<< car_s << " " << car_d << " " << car_d_end_global << " " << car_speed << " " << car_v_end_global << endl;}
             //<< car_x << " " << car_y << " "   << endl;}
 
+            //***************************************************//
+            //Read Sensor Fusion Data
+            //***************************************************//
             sensor_processing(sensor_fusion, sensor_car_list_left, sensor_car_list_mid, sensor_car_list_right, car_s);
 
             //***************************************************//
             //Behavior Planning
             //***************************************************//
-
-            double v_init = car_v_init_global;
-            double v_end = car_v_end_global;
-
-            double d_init = car_d_init_global;
-            double d_end = car_d_end_global;
-
+            double v_init = car_v_init_global; double v_end = car_v_end_global;
+            double d_init = car_d_init_global; double d_end = car_d_end_global;
             int next_signal;
 
-            cout << setw(25) <<"==================================================================" << endl;
             next_signal = next_state(car_s, car_d, car_speed, sensor_car_list_left, sensor_car_list_mid, sensor_car_list_right);
-            cout << setw(25) << "NEXT SIGNAL: " << next_signal << " FLAGS " << lane_keeping_flag << " " << lane_changing_flag << endl;
-            if (lane_keeping_flag==false){cout << "Current speed: " << car_speed << " Speed target: " << car_v_end_global << endl;}
-            if ( (next_signal == 0) && (lane_changing_flag==true) ){
-              if (car_d> 2.0*car_lane_width){
-                lane_keeping(sensor_car_list_right, car_s, prev_s, lane_keeping_buffer, v_init, v_end, car_speed, lane_keeping_flag);
-              }
-              else if(car_d > car_lane_width){
-                lane_keeping(sensor_car_list_mid, car_s, prev_s, lane_keeping_buffer, v_init, v_end, car_speed, lane_keeping_flag);
-              }
-              else {
-                lane_keeping(sensor_car_list_left, car_s, prev_s, lane_keeping_buffer, v_init, v_end, car_speed, lane_keeping_flag);
-              }
+
+            cout << setw(25) <<"==================================================================" << endl;
+            //cout << setw(25) << "NEXT SIGNAL: " << next_signal << " FLAGS " << lane_keeping_flag << " " << lane_changing_flag << endl;
+            if (lane_changing_flag==false){
+              cout << "Current Status: " << "Changing Lane" << endl;
+              if (next_signal<0){cout << "Direction: " << "Left" << endl;}
+              else if (next_signal==0){cout << "Direction: " << "Straight" << endl;}
+              else {cout << "Direction: " << "Right" << endl;}
+            }
+            else if (lane_keeping_flag==false){
+              cout << "Current Status: " << "Adjusting Speed" << endl;
+              cout << "Current speed: " << car_speed << " Speed target: " << car_v_end_global << endl;
             }
             else{
-              lane_changing(car_s, prev_s, v_init, v_end, car_speed, car_d, d_init, d_end, next_signal, lane_changing_flag);
+              cout << "Current Status: " << "Keeping Lane" << endl;
+              cout << "Current speed: " << car_speed << " Speed target: " << car_v_end_global << endl;
             }
+            if ( (next_signal == 0) && (lane_changing_flag==true) ){
+              if (car_d> 2.0*car_lane_width){lane_keeping(sensor_car_list_right, car_s, prev_s, lane_keeping_buffer, v_init, v_end, car_speed, lane_keeping_flag);}
+              else if(car_d > car_lane_width){lane_keeping(sensor_car_list_mid, car_s, prev_s, lane_keeping_buffer, v_init, v_end, car_speed, lane_keeping_flag);}
+              else {lane_keeping(sensor_car_list_left, car_s, prev_s, lane_keeping_buffer, v_init, v_end, car_speed, lane_keeping_flag);}
+            }
+            else{ lane_changing(car_s, prev_s, v_init, v_end, car_speed, car_d, d_init, d_end, next_signal, lane_changing_flag);}
 
             double prev_path_size_kept = s_history.size();
 
-            if (dflag>=dflag_general)
-            {cout << setw(25) <<"==================================================================" << endl;
-            cout << setw(25) << "Trajectories Generation" << endl;
-            cout << setw(25) << "==================================================================" << endl;}
-
             //***************************************************//
-            //Evaluate Previous State
+            //Re-Evaluate Previous State after Behavior Planning
             //***************************************************//
             //cout << setw(25) << "all path points in the prev list: " << endl;
             //for (int i = 0; i<path_size; i++) cout << previous_path_x[i] << ' ' << previous_path_y[i] << ' ' << endl;
@@ -402,15 +407,20 @@ int main() {
               prev_a = 0.0;
               prev_d = car_d_init;
             }
+            start = {prev_s, prev_speed, prev_a}; //end = {car_s_next, car_speed_next, car_a_next};
 
-            start = {prev_s, prev_speed, prev_a};
-            //end = {car_s_next, car_speed_next, car_a_next};
+            //***************************************************//
+            //Generate Trajectories
+            //***************************************************//
+            if (dflag>=dflag_general)
+            {cout << setw(25) <<"==================================================================" << endl;
+            cout << setw(25) << "Trajectories Generation" << endl;
+            cout << setw(25) << "==================================================================" << endl;}
 
             trajectories_generation(start, end, s_history, v_init, v_end, prev_d, d_history, d_init, d_end, max_prev_path_size - prev_path_size_kept,
               t_inc, t_n, car_speed_max, c, c_d);
 
             //cout << "current speed: "  << car_speed << endl;
-
             //cout << setw(25) << "==================================================================" << endl;
             //***************************************************//
             //Output Next Path States
