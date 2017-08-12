@@ -46,11 +46,16 @@ One thing noteworthy is that, instead of storing previous path in [x, y] coordin
 
 #### 2.1.1 Sensor data processing
 
-The sensor fusion data are separated into three lists, each for one lane respectively. The states of the cars in each lane are further sorted so they are in descending order in terms of s, so it is easier to post process the data iin the behavior planning module.
+The sensor fusion data are separated into three lists, each for one lane respectively. The states of the cars in each lane are further sorted so they are in descending order in terms of s, so it is easier to post process the data in the behavior planning module.
 
 ### 2.2 Behavior planning
 
-The behavior module determines the end status of the car, which will be passed to trajectories generation module later. this module consists of two functions,
+The behavior module evaluates all the possible next states of the car and choose the one of lowest cost. Three costs are taken into account:
+1. lane changing comfort cost: adds cost of 0.04 when lane changing takes place.
+2. collision cost: adds cost of 1.0 when collision happens.
+3. car speed efficiency cost: adds cost inversely proportional to the expected car speed. 0 when it is at speed limit, and 0.9 when the speed is zero.
+
+Then it determines the end status of the car, which will be passed to trajectories generation module later. this module consists of two functions,
 
 ```
 void lane_keeping(vector<vector<double>>  sensor_car_list_current, double car_s, double prev_s, double s_buffer, double &v_init, double &v_end, double car_speed, bool &flag)
@@ -69,6 +74,14 @@ Because the Jerk Minimizing Trajectory (JMT) requires the position, speed and ac
 
 ![Trajectories Derivation][image2]
 
-Then we are able to evaluate the status of the car after certain time increment and utilize the JMT function to generate a smooth path. 
+Then we are able to evaluate the status of the car after certain time increment and utilize the JMT function to generate a smooth path.
 
 ## 3. Code Structure
+
+All source codes are included in the folder ```./src```.
+1. ```behaviors.h```: two functions, lane_keeping and lane_changing, that calculate the end status of the car.
+2. ```costs.h```: calculate the costs for all possible next states and return the one with lowest cost.
+3. ```map.h```: read in the map and refine with spline fitting.
+4. ```sensor.h```: process the sensor data and return three sorted vectors.
+5. ```trajectories.h```: calculate trajectories based on JMT.
+6. ```main.h```: where everything is called.
