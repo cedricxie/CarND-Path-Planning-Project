@@ -101,10 +101,10 @@ void trajectories_generation(vector<double> &start_states, vector<double> &end_s
     end_states={car_s_next, car_speed_next, car_a_next};
     //cout << t_current << " " << car_speed_current << " " << v_init << " " << v_end << " " << car_speed_next << endl;
 
-    if (abs(prev_d - d_end)<0.01){ t_current = -2.0; }
-    else if ( (prev_d-d_init)/(d_end - d_init) < 1.0/(1+exp(c_d*2.0)) ) { t_current = -2.0;}
-    else if( (prev_d-d_init)/(d_end - d_init) > 1.0/(1+exp(-c_d*2.0)) ) { t_current = 2.0;}
-    else{ t_current = - log((d_end - d_init)/(prev_d-d_init) - 1.0)/c;}
+    if (abs(prev_d - d_end)<0.01){ t_current = 3.0; } //in case when prev_d and d_end is very close, to avoid dvide by zero
+    else if ( (prev_d-d_init)/(d_end - d_init) < 1.0/(1+exp(c_d*3.0)) ) { t_current = -3.0;}
+    else if( (prev_d-d_init)/(d_end - d_init) > 1.0/(1+exp(-c_d*3.0)) ) { t_current = 3.0;}
+    else{ t_current = - log((d_end - d_init)/(prev_d-d_init) - 1.0)/c_d;}
 
     t_next = t_current + double(t_inc)/t_n*(t_n+1.0);
 
