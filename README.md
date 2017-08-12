@@ -19,7 +19,7 @@ The objective of this project is to implement a behavior planning module and a t
 
 ## 2. Model Overview
 
-A flowchart of the model is demonstrated here.
+A video file showing a car driving successfully for a full lap can be found [on Youtube following this link](https://www.youtube.com/watch?v=QCtTLUiprg4). A flowchart of the model is demonstrated here.
 
 ![Model Flowchart][image1]
 
