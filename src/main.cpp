@@ -44,7 +44,7 @@ double t_inc = 3;
 double t_n = 150;
 double c = 2.0;
 double c_d = 2.0;
-double car_speed_max = 20.0;
+double car_speed_max = 20.5;
 double car_s_init = 1.249392e+02;
 double car_d_init = 6.164833e+00;
 int max_prev_path_size = t_n;
@@ -52,15 +52,15 @@ int max_prev_path_size = t_n;
 double car_v_init_global = 0.0;
 double car_v_end_global = car_speed_max;
 
-int car_lane_init_global = 0;
-int car_lane_end_global = 0;
+double  car_d_init_global = 6.164833e+00;
+double car_d_end_global = 6.164833e+00;
 
 bool lane_keeping_flag = true;
-double lane_keeping_buffer = 50.0;
+double lane_keeping_buffer = 5.0;
 double lane_keeping_buffer_v = 1.0;
 
-double lane_change_flag = true;
-double lane_change_buffer = 20.0;
+bool lane_changing_flag = true;
+double lane_change_buffer = 25.0;
 
 vector<double> s_history;
 vector<double> d_history;
@@ -322,18 +322,24 @@ int main() {
               s_history.erase( s_history.begin(), s_history.begin() + (int)t_n - prev_path_size );
               d_history.erase( d_history.begin(), d_history.begin() + (int)t_n - prev_path_size );
             }
+            else{
+              prev_s = car_s_init;
+              prev_speed = 0.0;
+              prev_a = 0.0;
+              prev_d = car_d_init;
+            }
 
             iter_count++;
 
             cout << scientific;
             cout << left;
-            if (dflag>=dflag_general)
+            //if (dflag>=dflag_general)
             {cout << setw(25) << "==================================================================" << endl;
             cout << setw(25) << "Start Iteration: " << iter_count << endl;
             cout << setw(25) << "==================================================================" << endl;
             //cout << setw(25) << "pseudo t:  "<< t_current << endl;
-            cout << setw(25) << "current status :  "<< car_s << " " << car_d << " " << car_speed << " "
-            << car_x << " " << car_y << " "   << endl;}
+            cout << setw(25) << "current status :  "<< car_s << " " << car_d << " " << car_d_end_global << " " << car_speed << " " << car_v_end_global << endl;}
+            //<< car_x << " " << car_y << " "   << endl;}
 
             sensor_processing(sensor_fusion, sensor_car_list_left, sensor_car_list_mid, sensor_car_list_right);
 
@@ -344,29 +350,30 @@ int main() {
             double v_init = car_v_init_global;
             double v_end = car_v_end_global;
 
-            double d_init = car_d_init + car_lane_init_global * car_lane_width;
-            double d_end = car_d_init + car_lane_end_global * car_lane_width;
+            double d_init = car_d_init_global;
+            double d_end = car_d_end_global;
 
-            lane_keeping(sensor_car_list_mid, car_s, prev_s, lane_keeping_buffer, v_init, v_end, car_speed, lane_keeping_flag);
+            int next_signal;
 
-            double prev_path_size_kept = s_history.size();
-
-            //cout << v_init  << " " << v_end << endl;
-
-            //car_v_init_global = v_init;
-            //car_v_end_global = v_end;
-            /*if (flag){
-              cout << setw(25) << "Change lane started: " << -1 << endl;
-              car_lane_init_global = car_lane_end_global;
-              car_lane_end_global = car_lane_end_global  - 1;
-              flag = false;
+            cout << setw(25) <<"==================================================================" << endl;
+            next_signal = next_state(car_s, car_d, car_speed, sensor_car_list_left, sensor_car_list_mid, sensor_car_list_right);
+            cout << setw(25) << "NEXT SIGNAL: " << next_signal << " FLAGS " << lane_keeping_flag << " " << lane_changing_flag << endl;
+            if ( (next_signal == 0) && (lane_changing_flag==true) ){
+              if (car_d> 2.0*car_lane_width){
+                lane_keeping(sensor_car_list_right, car_s, prev_s, lane_keeping_buffer, v_init, v_end, car_speed, lane_keeping_flag);
+              }
+              else if(car_d > car_lane_width){
+                lane_keeping(sensor_car_list_mid, car_s, prev_s, lane_keeping_buffer, v_init, v_end, car_speed, lane_keeping_flag);
+              }
+              else {
+                lane_keeping(sensor_car_list_left, car_s, prev_s, lane_keeping_buffer, v_init, v_end, car_speed, lane_keeping_flag);
+              }
             }
             else{
-              if (abs(prev_d - d_end) < 0.01) {
-                car_lane_init_global = car_lane_end_global;
-                cout << setw(25) << "Change lane completed: " << -1 << endl;
-              }
-            }*/
+              lane_changing(car_s, prev_s, v_init, v_end, car_speed, car_d, d_init, d_end, next_signal, lane_changing_flag);
+            }
+
+            double prev_path_size_kept = s_history.size();
 
             if (dflag>=dflag_general)
             {cout << setw(25) <<"==================================================================" << endl;
