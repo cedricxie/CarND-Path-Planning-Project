@@ -131,7 +131,7 @@ void lane_changing(double car_s, double prev_s,
         cout << setw(25) << "Attension: changing lane to LEFT"  << endl;
         //cout << setw(25) << "Change d to: " << d_end - car_lane_width  << endl;
         car_d_init_global = car_d;
-        if (car_d > 2.0*car_lane_width){car_d_end_global = car_d_init-0.1;}
+        if (car_d > 2.0*car_lane_width){car_d_end_global = car_d_init-0.05;}
         else {car_d_end_global = car_d_init- car_lane_width+0.35;}
       }
       else{
@@ -139,7 +139,7 @@ void lane_changing(double car_s, double prev_s,
         //cout << setw(25) << "Change d to: " << d_end + car_lane_width  << endl;
         car_d_init_global = car_d;
         if (car_d > 1.0*car_lane_width){car_d_end_global = car_d_init + car_lane_width - 0.75;}
-        else {car_d_end_global = car_d_init-0.1;}
+        else {car_d_end_global = car_d_init-0.05;}
       }
       flag = false;
       d_init = car_d_init_global;
